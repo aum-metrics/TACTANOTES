@@ -4,19 +4,21 @@ import '../providers/engine_provider.dart';
 import '../widgets/stealth_mode_overlay.dart';
 
 class RecordingScreen extends StatefulWidget {
-  const RecordingScreen({super.key});
+  final String? subject;
+  const RecordingScreen({super.key, this.subject});
 
   @override
   State<RecordingScreen> createState() => _RecordingScreenState();
 }
 
 class _RecordingScreenState extends State<RecordingScreen> {
-  String _subject = "Physics 101"; // Default
+  late String _subject; 
   bool _stealthMode = false;
 
   @override
   void initState() {
     super.initState();
+    _subject = widget.subject ?? "Physics 101";
     // Google Play Policy: Prominent Disclosure BEFORE Permission
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndRequestMic());
   }

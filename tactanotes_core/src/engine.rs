@@ -3,7 +3,7 @@ use crate::audio::buffer::CircularAudioBuffer;
 // use crate::audio::vad::VadEngine;
 // use crate::ai::asr::WhisperModel;
 // use crate::ai::llm::LlmModel;
-// use crate::storage::db::Database;
+use crate::storage::db::Database;
 use crate::engine::endurance::{EnduranceController, EnduranceMode};
 use crate::ai::manager::ModelManager;
 use crate::ai::text::RollingBuffer;
@@ -28,10 +28,13 @@ pub struct Engine {
     buffer: RollingBuffer,
     lang_detector: LanguageDetector,
     current_subject: String,
+    current_folder_id: Option<i64>,
     
     // v5.3 Endurance
     endurance: EnduranceController,
     tick_count: u64,
+    
+    database: Database,
 }
 
 impl Engine {
@@ -44,8 +47,10 @@ impl Engine {
             buffer: RollingBuffer::new(8000), 
             lang_detector: LanguageDetector::new(),
             current_subject: "General".to_string(),
+            current_folder_id: None,
             endurance: EnduranceController::new(),
             tick_count: 0,
+            database: Database::open("tactanotes.db", "default_password").expect("Failed to open DB"),
         }
     }
     
@@ -169,7 +174,7 @@ impl Engine {
     }
 
 
-    pub fn stop_recording_and_summarize(&mut self) {
+    pub fn stop_recording_and_summarize(&mut self) -> String {
         println!("Engine: Triggering Summary Swap...");
         
         // 1. Unload ASR
@@ -206,9 +211,34 @@ impl Engine {
         // 5. Unload LLM
         self.model_manager.unload_llm();
         
+        // 6. Save to DB
+        if let Err(e) = self.database.add_note(&format!("Note {}", chrono::Utc::now().timestamp()), &summary, self.current_folder_id) {
+             println!("Error saving note: {}", e);
+        } else {
+             println!("Note saved to DB.");
+        }
+        
         // 6. Return to Recording
         println!("Engine: Returning to Recording...");
         self.model_manager.load_asr();
         self.state = EngineState::Recording;
+        
+        summary
+    }
+
+    pub fn create_folder(&self, name: &str) -> anyhow::Result<i64> {
+        Ok(self.database.create_folder(name).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn get_folders(&self) -> anyhow::Result<Vec<(i64, String)>> {
+        Ok(self.database.get_folders().map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn get_notes_by_folder(&self, folder_id: i64) -> anyhow::Result<Vec<(i64, String, String, i64)>> {
+         Ok(self.database.get_notes_by_folder(folder_id).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn set_current_folder(&mut self, folder_id: Option<i64>) {
+        self.current_folder_id = folder_id;
     }
 }

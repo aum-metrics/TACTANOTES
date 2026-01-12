@@ -1,12 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'providers/engine_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'bridge_generated.dart/frb_generated.dart'; // Import for RustLib.init()
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  try {
+    if (!kIsWeb) {
+      await RustLib.init();
+    } else {
+      print("Web Mock Mode: Skipping Rust Init");
+    }
+    runApp(const MyApp());
+  } catch (e, stack) {
+    print("Error initializing Rust: $e");
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: SingleChildScrollView(
+            child: Text("Init Error: $e\n$stack", style: const TextStyle(color: Colors.red)),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -60,7 +80,7 @@ class _LoginAuthWrapperState extends State<LoginAuthWrapper> {
     // In real app, check SharedPreferences or SecureStorage
     await Future.delayed(const Duration(milliseconds: 500)); // Sim check
     setState(() {
-      _loggedIn = true; // Skip login for testing
+      _loggedIn = false; // Enable login flow
       _checked = true;
     });
   }
@@ -70,6 +90,6 @@ class _LoginAuthWrapperState extends State<LoginAuthWrapper> {
     if (!_checked) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return _loggedIn ? const HomeScreen() : const LoginScreen();
+    return _loggedIn ? HomeScreen() : LoginScreen();
   }
 }

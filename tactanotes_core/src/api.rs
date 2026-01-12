@@ -21,13 +21,34 @@ pub fn start_recording(subject: String) -> anyhow::Result<()> {
     engine.start_recording()
 }
 
-pub fn stop_recording() {
+pub fn stop_recording() -> anyhow::Result<String> {
     let mut engine = ENGINE.lock().unwrap();
-    engine.stop_recording_and_summarize();
+    Ok(engine.stop_recording_and_summarize())
 }
 
 // Gap 5: Thermal Update from Flutter
 pub fn update_thermal_status(battery_temp: f32) {
     let mut engine = ENGINE.lock().unwrap();
     engine.update_battery_temp(battery_temp);
+}
+
+pub fn create_folder(name: String) -> anyhow::Result<i64> {
+    let engine = ENGINE.lock().unwrap();
+    engine.create_folder(&name)
+}
+
+pub fn get_folders() -> anyhow::Result<Vec<(i64, String)>> {
+    let engine = ENGINE.lock().unwrap();
+    engine.get_folders()
+}
+
+pub fn get_notes_by_folder(folder_id: i64) -> anyhow::Result<Vec<(i64, String, String, i64)>> {
+    let engine = ENGINE.lock().unwrap();
+    engine.get_notes_by_folder(folder_id)
+}
+
+pub fn set_current_folder(folder_id: Option<i64>) -> anyhow::Result<()> {
+    let mut engine = ENGINE.lock().unwrap();
+    engine.set_current_folder(folder_id);
+    Ok(())
 }
