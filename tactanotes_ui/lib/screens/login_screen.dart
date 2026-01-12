@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                              value: _country,
+                              initialValue: _country,
                               decoration: const InputDecoration(labelText: "Country", border: OutlineInputBorder()),
                               items: ["India", "USA", "UK", "Other"].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                               onChanged: (v) => setState(() => _country = v!),

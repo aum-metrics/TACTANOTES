@@ -12,7 +12,7 @@ class RecordingScreen extends StatefulWidget {
 
 class _RecordingScreenState extends State<RecordingScreen> {
   String _subject = "Physics 101"; // Default
-  bool _hasCheckedPermission = false;
+  bool _stealthMode = false;
 
   @override
   void initState() {
@@ -41,7 +41,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
                       TextButton(
                           onPressed: () { 
                               Navigator.pop(ctx);
-                              setState(() => _hasCheckedPermission = true);
                               // Permission.microphone.request(); 
                           },
                           child: const Text("Continue")
@@ -92,7 +91,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                                     Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                            color: Colors.amber.withOpacity(0.1),
+                                            color: Colors.amber.withAlpha(26),
                                             borderRadius: BorderRadius.circular(8),
                                             border: Border.all(color: Colors.amber.shade200)
                                         ),
