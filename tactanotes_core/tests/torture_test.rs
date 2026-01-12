@@ -9,7 +9,7 @@ fn torture_test_10_hours_simulation() {
     println!(">>> STARTING 10-HOUR ENDURANCE SIMULATION <<<");
     println!("Target: Zero RAM Drift, Zero Panics");
     
-    let mut engine = Engine::new();
+    let mut engine = Engine::new("./test.db", "./models");
     engine.set_subject("Torture Test Physics");
     engine.start_recording().expect("Failed to start recording");
     
@@ -33,7 +33,7 @@ fn torture_test_10_hours_simulation() {
              println!(">>> T+{} Hours. System Stable. RAM Check: OK (Simulated)", hours);
              
              // Trigger a summary event every hour to stress memory swap
-             engine.stop_recording_and_summarize();
+             engine.stop_recording_and_summarize(None);
         }
         
         // Fast forward simulation: We don't verify sleep here, just logic cycles.

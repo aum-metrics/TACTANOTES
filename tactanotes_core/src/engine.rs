@@ -150,13 +150,23 @@ impl Engine {
                             // Real-time Streaming with Accumulation (1s chunks)
                             self.transcription_buffer.extend_from_slice(&new_audio);
                             
-                            // 16000 samples = 1 second (Faster feedback)
-                            if self.transcription_buffer.len() >= 16000 {
+                            // 48000 samples = 3 seconds (Better context, less "swallowing")
+                            if self.transcription_buffer.len() >= 48000 {
                                 let text = self.model_manager.transcribe(&self.transcription_buffer);
                                 // Filter out hallucinations and silence artifacts
-                                if !text.is_empty() && text != "[BLANK_AUDIO]" {
-                                    println!("Transcribed: {}", text);
-                                    self.buffer.push(&text);
+                                if !text.is_empty() && !text.contains("[BLANK_AUDIO]") {
+                                    // De-dup: Prevent repeating the exact same segment
+                                    // RollingBuffer is just a String wrapper, so we check suffixes.
+                                    let context = self.buffer.get_context().trim_end();
+                                    let normalized_text = text.trim();
+                                    
+                                    // Check if the END of the context matches the new text (basic suffix check)
+                                    // We also check "starts_with" inversely in case the buffer ends with partial of new text,
+                                    // but for now, exact suffix matching is the safest "Loop Breaker".
+                                    if !normalized_text.is_empty() && !context.ends_with(normalized_text) {
+                                         println!("Transcribed: {}", text);
+                                         self.buffer.push(&text);
+                                    }
                                 }
                                 self.transcription_buffer.clear();
                             }
@@ -191,27 +201,14 @@ impl Engine {
         // 2. Load LLM
         self.model_manager.load_llm();
         
-        // 3. Prepare Prompt
+        // 3. Prepare Prompt (Native Extractive: Just pass the text)
+        // For native summarization, we don't need "Subject: ..." prompts because
+        // the LLM isn't generative. Passing the prompt causes it to be treated as content.
         let context_text = self.buffer.get_context();
         let lang = self.lang_detector.detect(context_text);
         
-        // Feature F18: RAG Retrieval (Mock)
-        // Refinement 3: Call with subject filter
-        let _query_embedding = vec![0.0; 384]; // Mock query
-        // We simulate having a vector store instance here. In production, this would be self.vector_store.
-        // Since we didn't add the field to struct in this snippet, we assume the Mock behavior is sufficient documentation
-        // or we'd wire it up fully. For now, let's just make the comment accurate to the new API.
-        
-        // let relevant_context = self.vector_store.unwrap_context(&query_embedding, &self.current_subject); 
-        let relevant_context = format!("(Context from {} past notes)", self.current_subject); 
-        
-        let prompt = format!(
-            "Subject: {}\nLanguage: {}\nContext: {}\nText: {}\n\nSummarize the above lecture notes.",
-            self.current_subject, lang, relevant_context, context_text
-        );
-        
         // 4. Run Summary
-        let summary = self.model_manager.summarize(&prompt);
+        let summary = self.model_manager.summarize(context_text);
         println!("Summary generated [{}]: {}", lang, summary);
         
         // 5. Unload LLM

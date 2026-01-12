@@ -16,15 +16,23 @@ impl LlmModel {
         if !self.loaded || text.trim().is_empty() { return String::new(); }
 
         let sentences: Vec<&str> = text.split(|c| c == '.' || c == '?' || c == '!').collect();
+        let mut seen_sentences = std::collections::HashSet::new();
+        
         let significant_sentences: Vec<String> = sentences.iter()
             .filter(|s| {
                 let s = s.trim();
-                // Filter 1: Length heuristic (ignore short utterances)
                 if s.len() < 15 { return false; }
+                if s.contains("[BLANK_AUDIO]") { return false; }
                 
-                // Filter 2: Key phrases (heuristic simulation of "importance")
+                // Deduplication Filter
+                let s_lower = s.to_lowercase();
+                if seen_sentences.contains(&s_lower) { return false; }
+                seen_sentences.insert(s_lower);
+
+                // Key phrases filter
                 let key_phrases = ["important", "remember", "note", "summary", "conclusion", "idea", "concept", "key"];
-                key_phrases.iter().any(|&k| s.to_lowercase().contains(k)) || s.len() > 50 
+                // Relaxation: Accept if > 25 chars OR has key phrase. 50 was too strict.
+                key_phrases.iter().any(|&k| s.to_lowercase().contains(k)) || s.len() > 25 
             })
             .map(|s| s.trim().to_string())
             .collect();

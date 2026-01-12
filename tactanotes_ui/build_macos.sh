@@ -13,6 +13,14 @@ echo "🧹 Merging and removing AppleDouble detritus (dot_clean)..."
 dot_clean .
 xattr -cr .
 
+# 1.2 Kill Zombies
+echo "💀 Killing existing instances..."
+killall tactanotes_ui || true
+
+# 1.3 Nuke DerivedData (The Nuclear Option)
+echo "☢️  Nuking Xcode DerivedData..."
+rm -rf ~/Library/Developer/Xcode/DerivedData/Runner*
+
 # 1.5 Generate Bridge
 echo "🌉 Generating Flutter Rust Bridge bindings..."
 flutter_rust_bridge_codegen generate --rust-root ../tactanotes_core --rust-input crate::api --dart-output lib/src/rust

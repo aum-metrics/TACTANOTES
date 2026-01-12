@@ -7,8 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'providers/engine_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
-import 'bridge_generated.dart/frb_generated.dart'; // Import for RustLib.init()
-import 'bridge_generated.dart/api.dart' as api;
+import 'src/rust/frb_generated.dart'; // Import for RustLib.init()
+import 'src/rust/api.dart' as api;
 
 void main() async {
   try {

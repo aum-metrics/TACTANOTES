@@ -7,7 +7,7 @@ fn test_real_model_loading() {
     // Attempt to load the model. 
     // This will print "Whisper Engine Loaded Successfully" if it works.
     // If it fails (path issue), it will print error.
-    let model = WhisperModel::load();
+    let model = WhisperModel::load("./models");
     
     // We can't check internals easily without public fields, but if it didn't panic and printed logs, good.
     // Ideally we'd check `model.ctx.is_some()`, but field is private.
