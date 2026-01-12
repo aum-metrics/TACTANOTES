@@ -38,6 +38,13 @@ if [ ! -f "asr_model.onnx" ]; then
     curl -L -o asr_model.onnx "https://huggingface.co/Xenova/whisper-tiny/resolve/main/onnx/encoder_model_quantized.onnx"
 fi
 
+# 2b. Whisper GGML (Real Inference via whisper-rs)
+# URL: https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
+if [ ! -f "ggml-tiny.en.bin" ]; then
+    echo "   Fetching Whisper GGML (Real Inference)..."
+    curl -L -o ggml-tiny.en.bin "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin"
+fi
+
 # 3. Qwen 2.5 0.5B (Xenova)
 # URL: https://huggingface.co/Xenova/Qwen2.5-0.5B-Instruct/resolve/main/onnx/model_quantized.onnx
 if [ ! -f "llm_model.onnx" ]; then

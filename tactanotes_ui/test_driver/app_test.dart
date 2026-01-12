@@ -40,7 +40,7 @@ void main() {
       await driver.tap(recordFab); // Start recording
 
       // Wait for some "recording" time
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 2));
 
       await driver.tap(recordFab); // Stop recording
 
@@ -62,7 +62,7 @@ void main() {
       // This would test actual backend calls, but since it's mock, just verify UI
       final recordButton = find.byValueKey('record_fab');
       await driver.tap(recordButton);
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 1));
       await driver.tap(recordButton);
 
       // Verify transcript updates (mock)
