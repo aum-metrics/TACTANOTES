@@ -50,6 +50,7 @@ class _StealthModeOverlayState extends State<StealthModeOverlay> with SingleTick
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: const ValueKey('stealth_overlay'),
       onDoubleTap: widget.onDismiss, // Double tap to wake
       child: Container(
         color: Colors.black, // OLED off

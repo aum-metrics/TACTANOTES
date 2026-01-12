@@ -59,6 +59,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       appBar: AppBar(
         title: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
+            key: const ValueKey('subject_dropdown'),
             value: _subject,
             items: ["Physics 101", "Calculus II"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
             onChanged: (v) => setState(() => _subject = v!),
@@ -66,6 +67,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
         ),
         actions: [
             IconButton(
+                key: const ValueKey('stealth_toggle'),
                 icon: const Icon(Icons.battery_saver),
                 tooltip: "Toggle Stealth Mode",
                 onPressed: () => setState(() => _stealthMode = !_stealthMode),
@@ -81,6 +83,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                         ? Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: ListView(
+                                key: const ValueKey('summary_area'),
                                 children: [
                                     Text("Summary", style: Theme.of(context).textTheme.headlineSmall),
                                     const Divider(),
@@ -121,6 +124,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                         : Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: SingleChildScrollView( // F1: Streaming Transcript View
+                                key: const ValueKey('transcript_area'),
                                 child: Text(
                                     engine.currentTranscript.isEmpty ? "Tap mic to start..." : engine.currentTranscript,
                                     style: const TextStyle(fontSize: 18, height: 1.5),
@@ -136,6 +140,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         FloatingActionButton.large(
+                          key: const ValueKey('record_fab'),
                           backgroundColor: engine.isRecording ? Colors.red : Colors.blueAccent,
                           onPressed: () {
                             if (engine.isRecording) {

@@ -60,7 +60,7 @@ class _LoginAuthWrapperState extends State<LoginAuthWrapper> {
     // In real app, check SharedPreferences or SecureStorage
     await Future.delayed(const Duration(milliseconds: 500)); // Sim check
     setState(() {
-      _loggedIn = false; // Force login for demo
+      _loggedIn = true; // Skip login for testing
       _checked = true;
     });
   }

@@ -95,12 +95,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       
                       if (_isRegistering) ...[
                           TextFormField(
+                              key: const ValueKey('name_field'),
                               controller: _nameCtrl,
                               decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder()),
                               validator: (v) => v!.isEmpty ? "Required" : null,
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
+                              key: const ValueKey('email_field'),
                               controller: _emailCtrl,
                               decoration: const InputDecoration(labelText: "Email Address", border: OutlineInputBorder()),
                               validator: (v) => !v!.contains("@") ? "Invalid Email" : null,
@@ -116,6 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
         
                       TextFormField(
+                          key: const ValueKey('password_field'),
                           controller: _passCtrl,
                           obscureText: true,
                           decoration: const InputDecoration(labelText: "Master Password", border: OutlineInputBorder()),
@@ -128,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
+                            key: const ValueKey('login_button'),
                             onPressed: _isLoading ? null : _handleSubmit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,

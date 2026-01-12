@@ -18,6 +18,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: ListView.builder(
+        key: const ValueKey('subjects_list'),
         itemCount: subjects.length,
         itemBuilder: (context, index) {
           return ListTile(
@@ -31,6 +32,7 @@ class HomeScreen extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        key: const ValueKey('record_button'),
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const RecordingScreen()));
         },
