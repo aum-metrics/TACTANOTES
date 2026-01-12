@@ -56,7 +56,13 @@ impl Engine {
         self.recorder.start()?;
         
         self.state = EngineState::Recording;
+        self.state = EngineState::Recording;
         Ok(())
+    }
+
+    // Gap 5: Host -> Engine Thermal Update
+    pub fn update_battery_temp(&mut self, temp: f32) {
+        self.endurance.update_battery_temp(temp);
     }
 
     pub fn tick(&mut self) {

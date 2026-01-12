@@ -1,23 +1,13 @@
-# General
-.DS_Store
-.idea/
-.vscode/
-
-# Rust (tactanotes_core)
-/tactanotes_core/target/
-/tactanotes_core/**/Cargo.lock
-
-# Flutter (tactanotes_ui)
-/tactanotes_ui/.dart_tool/
-/tactanotes_ui/.flutter-plugins
-/tactanotes_ui/.flutter-plugins-dependencies
-/tactanotes_ui/build/
-/tactanotes_ui/ios/Flutter/Generated.xcconfig
-/tactanotes_ui/ios/Flutter/flutter_export_environment.sh
-/tactanotes_ui/android/.gradle
-/tactanotes_ui/android/local.properties
-/tactanotes_ui/pubspec.lock
-
-# Ephemeral / Tmp
-tmp/
-*.log
+target/
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+android/
+ios/
+# AI Models (Too large for standard Git, use LFS or Curl)
+*.onnx
+*.onnx_data

@@ -14,7 +14,7 @@ dependencies:
   google_fonts: ^6.1.0
   permission_handler: ^11.0.0
   path_provider: ^2.1.0
-  flutter_rust_bridge: ^1.80.0 # Example version
+  flutter_rust_bridge: ^2.0.0 # Upgraded to match Codegen v2
 
 dev_dependencies:
   flutter_test:

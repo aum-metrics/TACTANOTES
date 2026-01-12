@@ -8,9 +8,8 @@ pub struct WhisperModel {
 
 impl WhisperModel {
     pub fn load() -> Self {
-        println!("Loading Whisper-Tiny ASR Model (40MB)...");
-        // Simulated heavy load
-        // In real impl: load ONNX model from file
+        console_log("Loading Whisper ASR (distil-small.en-encoder.int8.onnx)...");
+        // In real impl: let model = tract_onnx::onnx().model_for_path("assets/models/distil-small.en-encoder.int8.onnx")?;
         Self { loaded: true }
     }
 

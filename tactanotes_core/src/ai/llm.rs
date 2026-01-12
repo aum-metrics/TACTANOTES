@@ -7,7 +7,9 @@ pub struct LlmModel {
 
 impl LlmModel {
     pub fn load() -> Self {
-        println!("Loading LLM Model (~300MB)...");
+        println!("Loading LLM (model_quantized.onnx + external data)...");
+        // In real impl: tract/ort looks for 'model_quantized.onnx'.
+        // The .onnx_data file is automatically found if in the same dir.
         Self { loaded: true }
     }
 
