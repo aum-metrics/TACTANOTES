@@ -1,12 +1,12 @@
 pub struct VadEngine {
     // tract_onnx::SimplePlan lookup would go here
-    model_path: String
+    _model_path: String
 }
 
 impl VadEngine {
     pub fn new(model_path: &str) -> Self {
         Self {
-            model_path: model_path.to_string()
+            _model_path: model_path.to_string()
         }
         // In real impl: Output would be loaded here.
     }

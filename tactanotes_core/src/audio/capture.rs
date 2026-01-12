@@ -46,7 +46,7 @@ impl AudioRecorder {
 
         // Intermediate buffer to handle CPAL's variable chunk sizes
         let mut input_accumulator: Vec<f32> = Vec::with_capacity(2048);
-        let mut output_scratch: Vec<Vec<f32>> = vec![vec![0.0; 2048]; 1]; // pre-allocate
+        let _output_scratch: Vec<Vec<f32>> = vec![vec![0.0; 2048]; 1]; // pre-allocate
 
         let stream = device.build_input_stream(
             &config,

@@ -1,5 +1,5 @@
 use std::sync::Mutex;
-use lazy_static::lazy_static; // Ensure this is in Cargo.toml or use std::sync::OnceLock if rust 1.70+
+// use lazy_static::lazy_static; // Ensure this is in Cargo.toml or use std::sync::OnceLock if rust 1.70+
 use crate::engine::Engine;
 
 // Global Engine Instance

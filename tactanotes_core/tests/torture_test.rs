@@ -1,5 +1,5 @@
 use tactanotes_core::engine::Engine;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 // Feature F5/Phase 5: The 10-Hour Run (Simulated Harness)
 // Usage: cargo test --test torture_test -- --nocapture
@@ -22,7 +22,7 @@ fn torture_test_10_hours_simulation() {
     let ticks_per_sec = 10; 
     let total_ticks = total_seconds * ticks_per_sec;
     
-    let start_time = Instant::now();
+    let _start_time = Instant::now();
     
     for i in 0..total_ticks {
         engine.tick();

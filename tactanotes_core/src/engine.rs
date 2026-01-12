@@ -1,15 +1,15 @@
 use crate::audio::capture::AudioRecorder;
 use crate::audio::buffer::CircularAudioBuffer;
-use crate::audio::vad::VadEngine;
-use crate::ai::asr::WhisperModel;
-use crate::ai::llm::LlmModel;
-use crate::storage::db::Database;
+// use crate::audio::vad::VadEngine;
+// use crate::ai::asr::WhisperModel;
+// use crate::ai::llm::LlmModel;
+// use crate::storage::db::Database;
 use crate::engine::endurance::{EnduranceController, EnduranceMode};
 use crate::ai::manager::ModelManager;
 use crate::ai::text::RollingBuffer;
 use crate::ai::lang::LanguageDetector;
-use std::sync::{Arc, Mutex};
-use crate::ai::rag::VectorStore;
+// use std::sync::{Arc, Mutex};
+// use crate::ai::rag::VectorStore;
 
 pub mod endurance;
 
@@ -186,7 +186,7 @@ impl Engine {
         
         // Feature F18: RAG Retrieval (Mock)
         // Refinement 3: Call with subject filter
-        let query_embedding = vec![0.0; 384]; // Mock query
+        let _query_embedding = vec![0.0; 384]; // Mock query
         // We simulate having a vector store instance here. In production, this would be self.vector_store.
         // Since we didn't add the field to struct in this snippet, we assume the Mock behavior is sufficient documentation
         // or we'd wire it up fully. For now, let's just make the comment accurate to the new API.
