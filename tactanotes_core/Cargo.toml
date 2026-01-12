@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 cpal = "0.15"
 rubato = "0.14" # High-fidelity Sinc Resampling
 dasp = { version = "0.11", features = ["signal", "interpolate", "window"] }
+hound = "3.5"   # Wav Writer for Persistence (F5.4)
 
 # Storage
 # rusqlite = { version = "0.29", features = ["bundled"] }
@@ -19,6 +20,8 @@ dasp = { version = "0.11", features = ["signal", "interpolate", "window"] }
 # AI / ML
 tract-onnx = "0.20"
 # whisper-rs = "0.11"
+nnnoiseless = "0.5" # DSP Noise Suppression (F11)
+fastembed = "4"     # Local Embeddings for RAG (F16)
 
 # Crypto
 ring = "0.16"

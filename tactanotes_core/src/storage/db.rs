@@ -61,6 +61,16 @@ mod real {
                 [],
             )?;
 
+            // Feature F16: RAG Embeddings Table
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS embeddings (
+                    note_id INTEGER PRIMARY KEY,
+                    vector TEXT,
+                    created_at INTEGER
+                )",
+                [],
+            )?;
+
             // Attachments Support
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS attachments (
@@ -78,6 +88,38 @@ mod real {
             let _ = conn.execute("ALTER TABLE notes ADD COLUMN folder_id INTEGER DEFAULT NULL", []);
 
             Ok(Self { conn, encryptor })
+        }
+
+        pub fn save_embedding(&self, note_id: i64, vector: Vec<f32>) -> Result<()> {
+            let vector_json = serde_json::to_string(&vector).unwrap_or_default();
+            self.conn.execute(
+                "INSERT OR REPLACE INTO embeddings (note_id, vector, created_at) VALUES (?1, ?2, ?3)",
+                params![note_id, vector_json, chrono::Utc::now().timestamp()],
+            )?;
+            Ok(())
+        }
+
+        pub fn search_similar_notes(&self, query_vector: &[f32], limit: usize) -> Result<Vec<(i64, f32)>> {
+            let mut stmt = self.conn.prepare("SELECT note_id, vector FROM embeddings")?;
+            let rows = stmt.query_map([], |row| {
+                 let vector_json: String = row.get(1)?;
+                 let vector: Vec<f32> = serde_json::from_str(&vector_json).unwrap_or_default();
+                 Ok((row.get::<_, i64>(0)?, vector))
+            })?;
+
+            let mut scores = Vec::new();
+            for row in rows {
+                if let Ok((id, vector)) = row {
+                    if vector.len() == query_vector.len() {
+                        let similarity = cosine_similarity(query_vector, &vector);
+                        scores.push((id, similarity));
+                    }
+                }
+            }
+
+            // Sort descending by similarity
+            scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            Ok(scores.into_iter().take(limit).collect())
         }
 
         pub fn add_note(&self, title: &str, content: &str, folder_id: Option<i64>) -> Result<i64> {
@@ -210,6 +252,17 @@ mod real {
                 results.push(row?);
             }
             Ok(results)
+        }
+    }
+
+    fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+        let dot_product: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+        let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+        let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if norm_a == 0.0 || norm_b == 0.0 {
+            0.0
+        } else {
+            dot_product / (norm_a * norm_b)
         }
     }
 }

@@ -48,19 +48,30 @@ impl AudioRecorder {
         let mut input_accumulator: Vec<f32> = Vec::with_capacity(2048);
         let _output_scratch: Vec<Vec<f32>> = vec![vec![0.0; 2048]; 1]; // pre-allocate
 
+        let mut high_pass = crate::audio::dsp::HighPassFilter::new(sample_rate as f32, 80.0);
+        let mut noise_gate = crate::audio::dsp::NoiseGate::new(-45.0); // -45dB threshold
+
         let stream = device.build_input_stream(
             &config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                // Diagnostics: Calculate RMS to detect silence
+                // DSP Phase 1: High Pass Filter (Remove rumble)
+                let mut processed_data = data.to_vec();
+                high_pass.process(&mut processed_data);
+                
+                // DSP Phase 2: Noise Gate (Silence background hiss)
+                // This prevents Whisper from hallucinating in "silent" rooms with AC content
+                noise_gate.process(&mut processed_data);
+                
+                // Diagnostics: Calculate RMS post-DSP
                 let mut sum_sq = 0.0;
-                for &sample in data {
+                for &sample in &processed_data {
                     sum_sq += sample * sample;
                 }
-                let rms = (sum_sq / data.len() as f32).sqrt();
+                let rms = (sum_sq / processed_data.len() as f32).sqrt();
 
                 if let Some(resampler) = &mut resampler_opt {
                      // 1. Accumulate input
-                     input_accumulator.extend_from_slice(data);
+                     input_accumulator.extend_from_slice(&processed_data);
                      
                      // 2. Process via TacticResampler
                      let chunk_size = resampler.input_frames_next();
@@ -73,7 +84,7 @@ impl AudioRecorder {
                                   buffer.extend_from_slice(&channel_data);
                                   // Log level occasionally
                                   if buffer.len() % 16000 < channel_data.len() {
-                                      println!("AudioRecorder: [Resampled] Captured 1s (RMS: {:.4})", rms);
+                                      println!("AudioRecorder: [DSP+Resampled] Captured 1s (RMS: {:.4})", rms);
                                   }
                               }
                          }
@@ -81,9 +92,9 @@ impl AudioRecorder {
                 } else {
                     // Native 16k pass-through
                     if let Ok(mut buffer) = buffer_clone.lock() {
-                        buffer.extend_from_slice(data);
-                        if buffer.len() % 16000 < data.len() {
-                            println!("AudioRecorder: [Native] Captured 1s (RMS: {:.4})", rms);
+                        buffer.extend_from_slice(&processed_data);
+                        if buffer.len() % 16000 < processed_data.len() {
+                            println!("AudioRecorder: [DSP+Native] Captured 1s (RMS: {:.4})", rms);
                         }
                     }
                 }

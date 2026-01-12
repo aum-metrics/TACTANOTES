@@ -37,6 +37,7 @@ pub struct Engine {
     database: Database,
     _models_dir: String,
     transcription_buffer: Vec<f32>, // v5.4: Accumulator for smoother ASR
+    full_session_audio: Vec<f32>,   // v5.5: Persistence Buffer
 }
 
 impl Engine {
@@ -55,6 +56,7 @@ impl Engine {
             database: Database::open(db_path, "default_password").expect("Failed to open DB"),
             _models_dir: models_dir.to_string(),
             transcription_buffer: Vec::new(),
+            full_session_audio: Vec::new(),
         }
     }
     
@@ -72,7 +74,7 @@ impl Engine {
         self.recorder.start()?;
         
         self.state = EngineState::Recording;
-        self.state = EngineState::Recording;
+        self.full_session_audio.clear(); // Reset buffer
         Ok(())
     }
 
@@ -103,6 +105,11 @@ impl Engine {
         
         match self.state {
             EngineState::Recording => {
+                // v5.5 Persistence Accumulation
+                if !new_audio.is_empty() {
+                    self.full_session_audio.extend_from_slice(&new_audio);
+                }
+
                 // Check Endurance Status
                 let mode = self.endurance.check_status();
 
@@ -195,44 +202,115 @@ impl Engine {
         
         // 1. Unload ASR
         self.model_manager.unload_asr();
-        
         self.state = EngineState::Summarizing;
         
         // 2. Load LLM
         self.model_manager.load_llm();
         
-        // 3. Prepare Prompt (Native Extractive: Just pass the text)
-        // For native summarization, we don't need "Subject: ..." prompts because
-        // the LLM isn't generative. Passing the prompt causes it to be treated as content.
+        // 2.5 Load RAG (Persistent)
+        self.model_manager.load_rag();
+        
+        // 3. Prepare Prompt & RAG Context
         let context_text = self.buffer.get_context();
         let lang = self.lang_detector.detect(context_text);
         
-        // 4. Run Summary
-        let summary = self.model_manager.summarize(context_text);
+        let mut final_input = context_text.to_string();
+        
+        println!("RAG: Generating embedding via ModelManager...");
+        if let Some(embedding) = self.model_manager.embed(context_text) {
+             // Search for similar notes
+             if let Ok(similar) = self.database.search_similar_notes(&embedding, 3) {
+                 if !similar.is_empty() {
+                     let mut context_str = String::from("\n\n---\nContext from past notes:\n");
+                     for (id, score) in similar {
+                         if let Ok((_, title, content, _)) = self.database.get_note(id) {
+                             // Only include if score > 0.5
+                             if score > 0.4 {
+                                context_str.push_str(&format!("- [{}] (Similarity: {:.2}): {}\n", title, score, content.lines().take(2).collect::<Vec<_>>().join(" ")));
+                             }
+                         }
+                     }
+                     final_input.push_str(&context_str);
+                     println!("RAG: Injected {} bytes of context.", context_str.len());
+                 }
+             }
+         }
+        
+        // 4. Run Summary with enriched context
+        let summary = self.model_manager.summarize(&final_input);
         println!("Summary generated [{}]: {}", lang, summary);
         
         // 5. Unload LLM
         self.model_manager.unload_llm();
         
         // 6. Save to DB
-        match append_to {
+        let note_id = match append_to {
             Some(id) => {
                 if let Ok((_id, title, existing_content, _updated)) = self.database.get_note(id) {
                      let new_content = format!("{}\n\n---\n\n{}", existing_content, summary);
                      let _ = self.database.update_note(id, &title, &new_content);
                      println!("Note {} updated with new summary.", id);
-                }
+                     Some(id)
+                } else { None }
             },
             None => {
-                if let Err(e) = self.database.add_note(&format!("Note {}", chrono::Utc::now().timestamp()), &summary, self.current_folder_id) {
-                     println!("Error saving note: {}", e);
-                } else {
-                     println!("Note saved to DB.");
+                match self.database.add_note(&format!("Note {}", chrono::Utc::now().timestamp()), &summary, self.current_folder_id) {
+                     Ok(id) => {
+                         println!("Note saved to DB: {}", id);
+                         Some(id)
+                     },
+                     Err(e) => {
+                         println!("Error saving note: {}", e);
+                         None
+                     }
                 }
             }
+        };
+        
+        if let Some(id) = note_id {
+            if let Some(embedding) = self.model_manager.embed(context_text) {
+                 let _ = self.database.save_embedding(id, embedding);
+                 println!("RAG: Embedding saved for note {}.", id);
+            }
+            
+            // 7.5 Save Full Audio (Persistence)
+            // Use current timestamp for unique filename
+            let filename = format!("recording_{}.wav", chrono::Utc::now().timestamp());
+            let path = std::path::Path::new("/tmp").join(&filename); // Ideally usage APP_DIR
+            
+            println!("Persistence: Saving {} samples to {:?}...", self.full_session_audio.len(), path);
+            
+            let spec = hound::WavSpec {
+                channels: 1,
+                sample_rate: 16000,
+                bits_per_sample: 16,
+                sample_format: hound::SampleFormat::Int,
+            };
+            
+            if let Ok(mut writer) = hound::WavWriter::create(&path, spec) {
+                // Convert f32 to i16
+                for &sample in &self.full_session_audio {
+                    let amplitude = sample * 32767.0;
+                    writer.write_sample(amplitude as i16).unwrap_or(());
+                }
+                writer.finalize().unwrap_or(());
+                
+                // Add as attachment
+                if let Some(path_str) = path.to_str() {
+                    let _ = self.database.add_attachment(id, "audio", path_str);
+                    println!("Persistence: Audio saved as attachment.");
+                }
+            } else {
+                println!("Persistence: Failed to create WAV file.");
+            }
+            // Clear for next session
+            self.full_session_audio.clear();
         }
         
-        // 6. Return to Recording
+        // 7.6 Unload RAG
+        self.model_manager.unload_rag();
+        
+        // 8. Return to Recording
         println!("Engine: Returning to Recording...");
         self.model_manager.load_asr();
         self.state = EngineState::Recording;
@@ -282,5 +360,33 @@ impl Engine {
 
     pub fn get_current_transcript(&self) -> String {
         self.buffer.get_context().to_string()
+    }
+
+    // Feature F16: Semantic Search
+    pub fn search_notes(&mut self, query: &str) -> anyhow::Result<Vec<(i64, String, String, i64)>> {
+        println!("Engine: Searching for '{}'...", query);
+        
+        // 1. Load RAG
+        self.model_manager.load_rag();
+        
+        let mut results = Vec::new();
+        
+        // 2. Embed Query
+        if let Some(embedding) = self.model_manager.embed(query) {
+             // 3. Vector Search
+             if let Ok(similar) = self.database.search_similar_notes(&embedding, 10) {
+                 for (id, _score) in similar {
+                     // 4. Fetch Details
+                     if let Ok(note) = self.database.get_note(id) {
+                         results.push(note);
+                     }
+                 }
+             }
+        }
+        
+        // 5. Unload RAG
+        self.model_manager.unload_rag();
+        
+        Ok(results)
     }
 }

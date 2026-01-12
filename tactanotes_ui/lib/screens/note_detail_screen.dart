@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../widgets/drawing_canvas.dart';
+import 'package:pdf_render/pdf_render_widgets.dart'; // Phase 4: PDF Tiling
+import 'package:audioplayers/audioplayers.dart'; // Phase 4: Audio Playback
 
 class NoteDetailScreen extends StatefulWidget {
   final int? noteId; // null = new note
@@ -228,6 +230,58 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     }
   }
 
+  Widget _buildAttachmentTile((int, String, String) att) {
+    final type = att.$2;
+    final path = att.$3;
+    final name = path.split('/').last;
+
+    return Container(
+      width: 150, // Fixed width for tiles
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: type == 'image'
+                  ? Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image))
+                  // PDF Rendering
+                  : (path.endsWith('.pdf') 
+                      ? PdfDocumentLoader.openFile(
+                          path,
+                          pageNumber: 1, // Render 1st page as cover
+                          pageBuilder: (context, textureBuilder, pageSize) => textureBuilder(),
+                        )
+                      : Container(
+                          color: Colors.grey[100],
+                          child: const Center(child: Icon(Icons.insert_drive_file, size: 40, color: Colors.blueGrey)),
+                        )
+                    )
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -326,41 +380,22 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               ),
             ),
             
-            // Attachments List (Horizontal scroll)
+            // Attachments Grid (Phase 4: Tiled View)
             if (_attachments.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              const Text(
+                "Attachments",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
               SizedBox(
-                height: 80,
+                height: 200, // Taller for tiling
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: _attachments.length,
                   itemBuilder: (context, index) {
                     final att = _attachments[index];
-                    return Container(
-                      width: 100,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            att.$2 == 'image' ? Icons.image : Icons.insert_drive_file,
-                            color: Colors.blueAccent,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            att.$3.split('/').last,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    );
+                    return _buildAttachmentTile(att);
                   },
                 ),
               ),
@@ -421,6 +456,60 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                   ],
                 ),
               ),
+            
+            const SizedBox(height: 16),
+
+             // Audio Playback Bar
+             if (widget.noteId != null)
+                Container(
+                   margin: const EdgeInsets.only(bottom: 16),
+                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                   decoration: BoxDecoration(
+                     color: Colors.blueGrey[50],
+                     borderRadius: BorderRadius.circular(12),
+                     border: Border.all(color: Colors.blueGrey[100]!),
+                   ),
+                   child: Row(
+                     children: [
+                       Icon(Icons.mic, color: Colors.blueGrey[700]),
+                       const SizedBox(width: 12),
+                       Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Text("Voice Note", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey[800])),
+                           Text("Click to play recording", style: TextStyle(fontSize: 10, color: Colors.blueGrey[500])),
+                         ],
+                       ),
+                       const Spacer(),
+                       IconButton(
+                         icon: const Icon(Icons.play_circle_fill, size: 32),
+                         color: Colors.blue[700],
+                         onPressed: () async {
+                            final audioAtt = _attachments.where((a) => a.$2 == 'audio' || a.$3.endsWith('.wav')).firstOrNull;
+                            if (audioAtt != null) {
+                                final path = audioAtt.$3;
+                                if (File(path).existsSync()) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Playing audio...")));
+                                    try {
+                                        final player = AudioPlayer();
+                                        await player.play(DeviceFileSource(path));
+                                        // Simple fire-and-forget for MVP. Ideally track state.
+                                    } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Playback error: $e")));
+                                    }
+                                } else {
+                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Audio file not found on disk.")));
+                                }
+                            } else {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No audio recording found for this note.")));
+                            }
+                         },
+                       ),
+                     ],
+                   ),
+                ),
+
+            // Metadata (if viewing existing note)
 
             // Metadata (if viewing existing note)
             if (widget.noteId != null && !_isEditing)

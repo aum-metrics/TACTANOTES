@@ -69,3 +69,7 @@ Future<PlatformInt64> addAttachment(
         required String filePath}) =>
     RustLib.instance.api.crateApiAddAttachment(
         noteId: noteId, fileType: fileType, filePath: filePath);
+
+Future<List<(PlatformInt64, String, String, PlatformInt64)>> searchNotes(
+        {required String query}) =>
+    RustLib.instance.api.crateApiSearchNotes(query: query);

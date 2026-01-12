@@ -385,4 +385,22 @@ class EngineProvider extends ChangeNotifier {
     _userName = name;
     notifyListeners();
   }
+
+  // Feature F16: Search UI Bridge
+  Future<List<(int, String, String, int)>> searchNotes(String query) async {
+    try {
+      if (kIsWeb) return [];
+      print("Dart: Searching for '$query'...");
+      final result = await api.searchNotes(query: query);
+      return result.map((e) => (
+         (e.$1 is int ? e.$1 : (e.$1 as dynamic).toInt()) as int,
+         e.$2,
+         e.$3,
+         (e.$4 is int ? e.$4 : (e.$4 as dynamic).toInt()) as int,
+      )).toList();
+    } catch (e) {
+      print("Error searching notes: $e");
+      return [];
+    }
+  }
 }

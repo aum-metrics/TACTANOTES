@@ -134,3 +134,9 @@ pub fn add_attachment(note_id: i64, file_type: String, file_path: String) -> any
     })
 }
 
+pub fn search_notes(query: String) -> anyhow::Result<Vec<(i64, String, String, i64)>> {
+    get_engine(|engine| {
+        engine.search_notes(&query)
+    })
+}
+
