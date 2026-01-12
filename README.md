@@ -19,9 +19,18 @@ TACTANOTES is a high-performance voice note-taking application designed for tota
 | **UI Shell** | Flutter (Dart) | Fluid Animations, Stealth Mode, OLED Optimization. |
 | **Logic Core** | Rust (via FRB) | Application state, Threading, Thermal Management. |
 | **Audio Engine** | `rubato` + `cpal` | Hi-Fi Sinc Resampling (48kHz -> 16kHz) & VAD. |
-| **ASR** | Whisper-Tiny (Int8) | Real-time Speech-to-Text. |
-| **Intelligence** | Gemma-2 (2B-Int4) | Offline Summarization & RAG. |
-| **Database** | SQLite + FTS5 | Encrypted storage & Full-Text Search. |
+| **ASR** | Distil-Small (Int8) | Real-time Speech-to-Text (102MB). |
+| **Intelligence** | Gemma-2 (2B-Int4) | Offline Summarization (425MB) via mmap. |
+| **Database** | SQLite + FTS5 | Encrypted storage & "Zen Search". |
+
+### 🧠 Memory Budget (The 512MB Challenge)
+To run large models on low-end devices, we use **Interleaved Inference**:
+
+| State | Models Loaded | RAM Usage | Purpose |
+| :--- | :--- | :--- | :--- |
+| **State A (Record)** | ASR + VAD | **~150 MB** | Real-time transcription. |
+| **State B (Think)** | LLM + Vector | **~460 MB** | Summarization & Organization. |
+*The system aggressively unloads ASR before loading the LLM.*
 
 ---
 
@@ -53,7 +62,8 @@ curl -L -o vad_model.onnx https://github.com/snakers4/silero-vad/raw/master/file
 # 2. Gemma 2 (2B) Mobile Optimized (~1.5GB)
 curl -L -o llm_model.onnx https://huggingface.co/EmbeddedLLM/gemma-2b-it-onnx/resolve/main/model_quantized.onnx
 
-# 3. Whisper Tiny (Available in repo history or download via similar curl if missing)
+# 3. Whisper Distil-Small (102MB)
+curl -L -o distil-small.en-encoder.int8.onnx https://huggingface.co/EmbeddedLLM/distil-small.en-onnx/resolve/main/encoder_model_quantized.onnx
 ```
 
 ### 4. Run It
