@@ -9,7 +9,7 @@ fn main() {
     println!("Spec: 10-Hour Survival / 900MB Cap");
     println!("-------------------------------------");
 
-    let mut engine = Engine::new();
+    let mut engine = Engine::new("tactanotes_cli.db", "../tactanotes_ui/assets/models");
     
     // Set Subject
     engine.set_subject("CLI_Session_001");

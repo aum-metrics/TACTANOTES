@@ -1,13 +1,27 @@
-target/
-build/
+# Flutter
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.packages
+build/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+macos/Flutter/Generated.xcconfig
+macos/Flutter/flutter_export_environment.sh
+macos/Pods/
 .pub-cache/
-.pub/
-android/
-ios/
-# AI Models (Too large for standard Git, use LFS or Curl)
-*.onnx
-*.onnx_data
+.packages
+
+# Rust
+target/
+**/*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.DS_Store
+
+# Temporary
+tmp/
+*.log

@@ -155,8 +155,65 @@ mod real {
             }
             Ok(results)
         }
+
+        pub fn update_note(&self, note_id: i64, title: &str, content: &str) -> Result<()> {
+            // Encrypt content
+            let encrypted_content = self.encryptor.encrypt(content.as_bytes())
+                .map_err(|_| rusqlite::Error::ToSqlConversionFailure("Encryption Error".into()))?;
+            
+            self.conn.execute(
+                "UPDATE notes SET title = ?1, content = ?2, updated_at = ?3 WHERE id = ?4",
+                params![title, encrypted_content, chrono::Utc::now().timestamp(), note_id],
+            )?;
+            Ok(())
+        }
+
+        pub fn delete_note(&self, note_id: i64) -> Result<()> {
+            // Soft delete by setting is_deleted flag
+            self.conn.execute(
+                "UPDATE notes SET is_deleted = 1, updated_at = ?1 WHERE id = ?2",
+                params![chrono::Utc::now().timestamp(), note_id],
+            )?;
+            Ok(())
+        }
+
+        pub fn get_note(&self, note_id: i64) -> Result<(i64, String, String, i64)> {
+            self.conn.query_row(
+                "SELECT id, title, content, updated_at FROM notes WHERE id = ?1 AND is_deleted = 0",
+                params![note_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        String::from_utf8(self.encryptor.decrypt(&row.get::<_, Vec<u8>>(2)?).unwrap_or(b"Decryption Failed".to_vec())).unwrap_or_default(),
+                        row.get(3)?,
+                    ))
+                },
+            )
+        }
+
+        pub fn add_attachment(&self, note_id: i64, file_type: &str, file_path: &str) -> Result<i64> {
+            self.conn.execute(
+                "INSERT INTO attachments (note_id, file_type, file_path, created_at) VALUES (?1, ?2, ?3, ?4)",
+                params![note_id, file_type, file_path, chrono::Utc::now().timestamp()],
+            )?;
+            Ok(self.conn.last_insert_rowid())
+        }
+
+        pub fn get_attachments(&self, note_id: i64) -> Result<Vec<(i64, String, String)>> {
+            let mut stmt = self.conn.prepare("SELECT id, file_type, file_path FROM attachments WHERE note_id = ?1")?;
+            let rows = stmt.query_map([note_id], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            })?;
+            let mut results = Vec::new();
+            for row in rows {
+                results.push(row?);
+            }
+            Ok(results)
+        }
     }
 }
+
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use real::Database;
@@ -197,6 +254,26 @@ mod mock {
 
         pub fn get_notes_by_folder(&self, _folder_id: i64) -> anyhow::Result<Vec<(i64, String, String, i64)>> {
              Ok(Vec::new())
+        }
+
+        pub fn update_note(&self, _note_id: i64, _title: &str, _content: &str) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        pub fn delete_note(&self, _note_id: i64) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        pub fn get_note(&self, _note_id: i64) -> anyhow::Result<(i64, String, String, i64)> {
+            Ok((1, "Mock".to_string(), "Content".to_string(), 0))
+        }
+
+        pub fn add_attachment(&self, _note_id: i64, _type: &str, _path: &str) -> anyhow::Result<i64> {
+            Ok(1)
+        }
+
+        pub fn get_attachments(&self, _note_id: i64) -> anyhow::Result<Vec<(i64, String, String)>> {
+            Ok(Vec::new())
         }
     }
 }

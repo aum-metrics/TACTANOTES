@@ -35,22 +35,26 @@ pub struct Engine {
     tick_count: u64,
     
     database: Database,
+    _models_dir: String,
+    transcription_buffer: Vec<f32>, // v5.4: Accumulator for smoother ASR
 }
 
 impl Engine {
-    pub fn new() -> Self {
+    pub fn new(db_path: &str, models_dir: &str) -> Self {
         Self {
             state: EngineState::Idle,
             recorder: AudioRecorder::new(),
             audio_buffer: CircularAudioBuffer::new(),
-            model_manager: ModelManager::new(),
+            model_manager: ModelManager::new(models_dir),
             buffer: RollingBuffer::new(8000), 
             lang_detector: LanguageDetector::new(),
             current_subject: "General".to_string(),
             current_folder_id: None,
             endurance: EnduranceController::new(),
             tick_count: 0,
-            database: Database::open("tactanotes.db", "default_password").expect("Failed to open DB"),
+            database: Database::open(db_path, "default_password").expect("Failed to open DB"),
+            _models_dir: models_dir.to_string(),
+            transcription_buffer: Vec::new(),
         }
     }
     
@@ -141,22 +145,24 @@ impl Engine {
                 
                 // 2. Process new live audio
                 if !new_audio.is_empty() {
-                    // Refinement 3: Endurance Batch vs Streaming
                     match mode {
                         EnduranceMode::HighPerformance => {
-                            // Real-time Streaming
-                            let text = self.model_manager.transcribe(&new_audio);
-                            if !text.is_empty() {
-                                println!("Transcribed: {}", text);
-                                self.buffer.push(&text);
+                            // Real-time Streaming with Accumulation (1s chunks)
+                            self.transcription_buffer.extend_from_slice(&new_audio);
+                            
+                            // 16000 samples = 1 second (Faster feedback)
+                            if self.transcription_buffer.len() >= 16000 {
+                                let text = self.model_manager.transcribe(&self.transcription_buffer);
+                                // Filter out hallucinations and silence artifacts
+                                if !text.is_empty() && text != "[BLANK_AUDIO]" {
+                                    println!("Transcribed: {}", text);
+                                    self.buffer.push(&text);
+                                }
+                                self.transcription_buffer.clear();
                             }
                         },
                         EnduranceMode::Endurance => {
-                            // Batch Mode: Do NOT transcribe yet. Just push to buffer.
-                            // The 30s buffer might be too small for 2 mins, so in real impl we'd append to a "Disk Staging" buffer.
-                            // For this simulation, we simulate the "Silence" of the AI until the 2-min mark.
                             self.audio_buffer.push(&new_audio); 
-                            // println!("Endurance: Buffering {} samples (AI Sleeping)", new_audio.len());
                         }
                     }
                 }
@@ -174,7 +180,7 @@ impl Engine {
     }
 
 
-    pub fn stop_recording_and_summarize(&mut self) -> String {
+    pub fn stop_recording_and_summarize(&mut self, append_to: Option<i64>) -> String {
         println!("Engine: Triggering Summary Swap...");
         
         // 1. Unload ASR
@@ -212,10 +218,21 @@ impl Engine {
         self.model_manager.unload_llm();
         
         // 6. Save to DB
-        if let Err(e) = self.database.add_note(&format!("Note {}", chrono::Utc::now().timestamp()), &summary, self.current_folder_id) {
-             println!("Error saving note: {}", e);
-        } else {
-             println!("Note saved to DB.");
+        match append_to {
+            Some(id) => {
+                if let Ok((_id, title, existing_content, _updated)) = self.database.get_note(id) {
+                     let new_content = format!("{}\n\n---\n\n{}", existing_content, summary);
+                     let _ = self.database.update_note(id, &title, &new_content);
+                     println!("Note {} updated with new summary.", id);
+                }
+            },
+            None => {
+                if let Err(e) = self.database.add_note(&format!("Note {}", chrono::Utc::now().timestamp()), &summary, self.current_folder_id) {
+                     println!("Error saving note: {}", e);
+                } else {
+                     println!("Note saved to DB.");
+                }
+            }
         }
         
         // 6. Return to Recording
@@ -240,5 +257,33 @@ impl Engine {
 
     pub fn set_current_folder(&mut self, folder_id: Option<i64>) {
         self.current_folder_id = folder_id;
+    }
+
+    pub fn add_note(&self, title: &str, content: &str, folder_id: Option<i64>) -> anyhow::Result<i64> {
+        Ok(self.database.add_note(title, content, folder_id).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn update_note(&self, note_id: i64, title: &str, content: &str) -> anyhow::Result<()> {
+        Ok(self.database.update_note(note_id, title, content).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn delete_note(&self, note_id: i64) -> anyhow::Result<()> {
+        Ok(self.database.delete_note(note_id).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn get_note(&self, note_id: i64) -> anyhow::Result<(i64, String, String, i64)> {
+        Ok(self.database.get_note(note_id).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn add_attachment(&self, note_id: i64, file_type: &str, file_path: &str) -> anyhow::Result<i64> {
+        Ok(self.database.add_attachment(note_id, file_type, file_path).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn get_attachments(&self, note_id: i64) -> anyhow::Result<Vec<(i64, String, String)>> {
+        Ok(self.database.get_attachments(note_id).map_err(|e| anyhow::anyhow!(e))?)
+    }
+
+    pub fn get_current_transcript(&self) -> String {
+        self.buffer.get_context().to_string()
     }
 }

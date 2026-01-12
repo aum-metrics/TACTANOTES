@@ -7,14 +7,16 @@ use super::llm::LlmModel;
 pub struct ModelManager {
     asr: Option<WhisperModel>,
     llm: Option<LlmModel>,
+    models_dir: String,
 }
 
 impl ModelManager {
-    pub fn new() -> Self {
-        console_log("Initializing AI Model Manager (Idle State)");
+    pub fn new(models_dir: &str) -> Self {
+        console_log(&format!("Initializing AI Model Manager in {}", models_dir));
         Self {
             asr: None,
             llm: None,
+            models_dir: models_dir.to_string(),
         }
     }
 
@@ -23,7 +25,7 @@ impl ModelManager {
             self.unload_llm(); // Safety enforcement
         }
         if self.asr.is_none() {
-            self.asr = Some(WhisperModel::load());
+            self.asr = Some(WhisperModel::load(&self.models_dir));
         }
     }
 
@@ -38,7 +40,7 @@ impl ModelManager {
             self.unload_asr(); // Safety enforcement
         }
         if self.llm.is_none() {
-            self.llm = Some(LlmModel::load());
+            self.llm = Some(LlmModel::load(&self.models_dir));
         }
     }
 

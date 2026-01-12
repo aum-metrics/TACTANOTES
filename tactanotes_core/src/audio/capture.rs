@@ -51,6 +51,13 @@ impl AudioRecorder {
         let stream = device.build_input_stream(
             &config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                // Diagnostics: Calculate RMS to detect silence
+                let mut sum_sq = 0.0;
+                for &sample in data {
+                    sum_sq += sample * sample;
+                }
+                let rms = (sum_sq / data.len() as f32).sqrt();
+
                 if let Some(resampler) = &mut resampler_opt {
                      // 1. Accumulate input
                      input_accumulator.extend_from_slice(data);
@@ -64,6 +71,10 @@ impl AudioRecorder {
                          if !channel_data.is_empty() {
                               if let Ok(mut buffer) = buffer_clone.lock() {
                                   buffer.extend_from_slice(&channel_data);
+                                  // Log level occasionally
+                                  if buffer.len() % 16000 < channel_data.len() {
+                                      println!("AudioRecorder: [Resampled] Captured 1s (RMS: {:.4})", rms);
+                                  }
                               }
                          }
                      }
@@ -71,6 +82,9 @@ impl AudioRecorder {
                     // Native 16k pass-through
                     if let Ok(mut buffer) = buffer_clone.lock() {
                         buffer.extend_from_slice(data);
+                        if buffer.len() % 16000 < data.len() {
+                            println!("AudioRecorder: [Native] Captured 1s (RMS: {:.4})", rms);
+                        }
                     }
                 }
             },

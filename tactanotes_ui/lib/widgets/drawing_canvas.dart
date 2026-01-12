@@ -1,55 +1,66 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:signature/signature.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
-// F9: Stylus/Handwriting Support
 class DrawingCanvas extends StatefulWidget {
-  const DrawingCanvas({super.key});
+  final Function(String path) onSave;
+
+  const DrawingCanvas({super.key, required this.onSave});
 
   @override
   State<DrawingCanvas> createState() => _DrawingCanvasState();
 }
 
 class _DrawingCanvasState extends State<DrawingCanvas> {
-  List<Offset?> points = [];
+  final SignatureController _controller = SignatureController(
+    penStrokeWidth: 3,
+    penColor: Colors.black,
+    exportBackgroundColor: Colors.white,
+  );
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onPanUpdate: (details) {
-        setState(() {
-          points.add(details.localPosition);
-        });
-      },
-      onPanEnd: (details) {
-        setState(() {
-          points.add(null);
-        });
-      },
-      child: CustomPaint(
-        painter: _SketchPainter(points),
-        size: Size.infinite,
-      ),
-    );
-  }
-}
-
-class _SketchPainter extends CustomPainter {
-  final List<Offset?> points;
-  _SketchPainter(this.points);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()
-      ..color = Colors.black
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 3.0;
-
-    for (int i = 0; i < points.length - 1; i++) {
-        if (points[i] != null && points[i + 1] != null) {
-            canvas.drawLine(points[i]!, points[i + 1]!, paint);
-        }
+  Future<void> _saveDrawing() async {
+    final Uint8List? data = await _controller.toPngBytes();
+    if (data != null) {
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/sketch_${DateTime.now().millisecondsSinceEpoch}.png';
+      final file = File(path);
+      await file.writeAsBytes(data);
+      widget.onSave(path);
+      if (mounted) Navigator.pop(context);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('New Sketch'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () => _controller.clear(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.check),
+            onPressed: _saveDrawing,
+          ),
+        ],
+      ),
+      body: Container(
+        color: Colors.white,
+        child: Signature(
+          controller: _controller,
+          backgroundColor: Colors.white,
+        ),
+      ),
+    );
+  }
 }

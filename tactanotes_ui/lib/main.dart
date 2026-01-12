@@ -1,16 +1,41 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
 import 'providers/engine_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'bridge_generated.dart/frb_generated.dart'; // Import for RustLib.init()
+import 'bridge_generated.dart/api.dart' as api;
 
 void main() async {
   try {
     if (!kIsWeb) {
+      WidgetsFlutterBinding.ensureInitialized();
       await RustLib.init();
+      
+      final appSupportDir = await getApplicationSupportDirectory();
+      final dbPath = "${appSupportDir.path}/tactanotes.db";
+      
+      // Resolve models directory
+      // 1. Bundle path (macOS)
+      String modelsDir = "${Platform.resolvedExecutable.replaceAll("/MacOS/tactanotes_ui", "")}/Resources/flutter_assets/assets/models";
+      
+      // 2. Fallback for Dev (Relative to project root)
+      if (!Directory(modelsDir).existsSync()) {
+        modelsDir = "${Directory.current.path}/assets/models";
+      }
+      
+      // 3. Absolute Fallback (User's specific path if others fail)
+      if (!Directory(modelsDir).existsSync()) {
+        modelsDir = "/Users/sambath/Documents/CODE/coding/TACTANOTES/tactanotes_ui/assets/models";
+      }
+
+      print("Initializing Rust with DB path: $dbPath");
+      print("Initializing Rust with Models dir: $modelsDir");
+      await api.initApp(dbPath: dbPath, modelsDir: modelsDir);
     } else {
       print("Web Mock Mode: Skipping Rust Init");
     }

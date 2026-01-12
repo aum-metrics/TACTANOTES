@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../providers/engine_provider.dart';
 import '../widgets/stealth_mode_overlay.dart';
 
@@ -24,10 +26,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   Future<void> _checkAndRequestMic() async {
-      // Mock check. In real app use: if (await Permission.microphone.isDenied)
-      bool permissionGranted = false; 
+      final status = await Permission.microphone.status;
       
-      if (!permissionGranted) {
+      if (status.isDenied || status.isPermanentlyDenied) {
           // Show Rationale first
           await showDialog(
               context: context,
@@ -41,9 +42,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   ),
                   actions: [
                       TextButton(
-                          onPressed: () { 
+                          onPressed: () async { 
                               Navigator.pop(ctx);
-                              // Permission.microphone.request(); 
+                              await Permission.microphone.request(); 
                           },
                           child: const Text("Continue")
                       )
@@ -59,13 +60,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            key: const ValueKey('subject_dropdown'),
-            value: _subject,
-            items: ["Physics 101", "Calculus II"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-            onChanged: (v) => setState(() => _subject = v!),
-          ),
+        title: Row(
+          children: [
+            const Icon(Icons.folder, size: 20),
+            const SizedBox(width: 8),
+            Text(_subject, style: const TextStyle(fontSize: 18)),
+          ],
         ),
         actions: [
             IconButton(
@@ -80,6 +80,29 @@ class _RecordingScreenState extends State<RecordingScreen> {
           children: [
               Column(
                 children: [
+                  // Web Demo Mode Banner
+                  if (kIsWeb)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      color: Colors.orange.shade100,
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.orange.shade900, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Web Demo Mode: Transcription is simulated. For real AI transcription, use the macOS app.",
+                              style: TextStyle(
+                                color: Colors.orange.shade900,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   Expanded(
                     child: engine.lastSummary.isNotEmpty 
                         ? Padding(

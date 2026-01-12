@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TACTANOTES needs microphone access to transcribe your lectures into notes in real-time.</string>
 </dict>
 </plist>

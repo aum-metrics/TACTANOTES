@@ -6,10 +6,12 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `get_engine`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ENGINE`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `deref`, `initialize`
 
-Future<void> initApp() => RustLib.instance.api.crateApiInitApp();
+Future<void> initApp({required String dbPath, required String modelsDir}) =>
+    RustLib.instance.api.crateApiInitApp(dbPath: dbPath, modelsDir: modelsDir);
 
 Future<void> startRecording({required String subject}) =>
     RustLib.instance.api.crateApiStartRecording(subject: subject);
@@ -31,3 +33,23 @@ Future<List<(PlatformInt64, String, String, PlatformInt64)>> getNotesByFolder(
 
 Future<void> setCurrentFolder({PlatformInt64? folderId}) =>
     RustLib.instance.api.crateApiSetCurrentFolder(folderId: folderId);
+
+Future<PlatformInt64> addNote(
+        {required String title,
+        required String content,
+        PlatformInt64? folderId}) =>
+    RustLib.instance.api
+        .crateApiAddNote(title: title, content: content, folderId: folderId);
+
+Future<void> updateNote(
+        {required PlatformInt64 noteId,
+        required String title,
+        required String content}) =>
+    RustLib.instance.api
+        .crateApiUpdateNote(noteId: noteId, title: title, content: content);
+
+Future<void> deleteNote({required PlatformInt64 noteId}) =>
+    RustLib.instance.api.crateApiDeleteNote(noteId: noteId);
+
+Future<String> getCurrentTranscript() =>
+    RustLib.instance.api.crateApiGetCurrentTranscript();

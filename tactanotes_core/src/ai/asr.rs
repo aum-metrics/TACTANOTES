@@ -13,34 +13,27 @@ mod real {
     }
 
     impl WhisperModel {
-        pub fn load() -> Self {
-            println!("Loading Whisper-Tiny (ggml-tiny.en.bin)...");
+        pub fn load(models_dir: &str) -> Self {
+            println!("Loading Whisper-Tiny from {}/ggml-tiny.en.bin...", models_dir);
             
-            // Path resolution: Try multiple likely locations
-            let paths = [
-                "../tactanotes_ui/assets/models/ggml-tiny.en.bin", // Dev (Core root)
-                "assets/models/ggml-tiny.en.bin",                  // Prod (UI root)
-                "/Users/sambath/Documents/CODE/coding/TACTANOTES/tactanotes_ui/assets/models/ggml-tiny.en.bin" // Abs fallback
-            ];
+            let path = Path::new(models_dir).join("ggml-tiny.en.bin");
+            let path_str = path.to_str().unwrap_or("");
             
-            for path_str in paths.iter() {
-                let path = Path::new(path_str);
-                if path.exists() {
-                     println!("Found model at: {:?}", path);
-                     let ctx_params = WhisperContextParameters::default();
-                     match WhisperContext::new_with_params(path_str, ctx_params) {
-                         Ok(ctx) => {
-                             println!("Whisper Engine Loaded Successfully.");
-                             return Self { ctx: Some(ctx) };
-                         },
-                         Err(e) => {
-                             println!("Failed to load Whisper context: {:?}", e);
-                         }
+            if path.exists() {
+                 println!("Found model at: {:?}", path);
+                 let ctx_params = WhisperContextParameters::default();
+                 match WhisperContext::new_with_params(path_str, ctx_params) {
+                     Ok(ctx) => {
+                         println!("Whisper Engine Loaded Successfully.");
+                         return Self { ctx: Some(ctx) };
+                     },
+                     Err(e) => {
+                         println!("Failed to load Whisper context: {:?}", e);
                      }
-                }
+                 }
             }
             
-            println!("ERROR: GGML Model not found in any standard path.");
+            println!("ERROR: GGML Model not found at {:?}", path);
             Self { ctx: None }
         }
 
@@ -104,7 +97,7 @@ mod mock {
     pub struct WhisperModel;
 
     impl WhisperModel {
-        pub fn load() -> Self {
+        pub fn load(_models_dir: &str) -> Self {
             println!("WASM: Mock WhisperModel loaded.");
             Self
         }

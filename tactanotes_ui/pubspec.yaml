@@ -14,7 +14,10 @@ dependencies:
   google_fonts: ^6.1.0
   permission_handler: ^11.0.0
   path_provider: ^2.1.0
-  flutter_rust_bridge: ^2.0.0 # Upgraded to match Codegen v2
+  flutter_rust_bridge: 2.11.1 # Pinned to match Cargo.toml and CLI
+  file_picker: ^8.0.0
+  image_picker: ^1.1.0
+  signature: ^5.4.1
 
 dev_dependencies:
   flutter_test:

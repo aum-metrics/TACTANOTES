@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'home_screen.dart';
 import '../services/registration_service.dart';
+import '../providers/engine_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -51,9 +53,10 @@ class _LoginScreenState extends State<LoginScreen> {
           );
           
           if (success) {
-              // 2. Local Key Derivation (Mocked here for UI flow)
+              // 2. Store user name in provider
               if (mounted) {
-                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                context.read<EngineProvider>().setUserName(_nameCtrl.text);
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
               }
           } else {
                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Registration Failed. Try again.")));
@@ -61,7 +64,12 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
           // Login Mode: Just Local Key Check
           await Future.delayed(const Duration(seconds: 1)); // Hardware crypto time
+          // Try to get stored name from registration service
+          final storedName = await _regService.getUserName();
           if (mounted) {
+             if (storedName != null) {
+               context.read<EngineProvider>().setUserName(storedName);
+             }
              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
           }
       }

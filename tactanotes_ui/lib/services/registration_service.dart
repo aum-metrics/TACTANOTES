@@ -51,4 +51,10 @@ class RegistrationService {
       return false;
     }
   }
+
+  /// 3. Get stored user name
+  Future<String?> getUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("user_name");
+  }
 }
