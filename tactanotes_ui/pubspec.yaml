@@ -1,0 +1,25 @@
+name: tactanotes_ui
+description: "Offline-First AI Notes & Learning Companion"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.0.0
+  shared_preferences: ^2.2.0
+  google_fonts: ^6.1.0
+  permission_handler: ^11.0.0
+  path_provider: ^2.1.0
+  flutter_rust_bridge: ^1.80.0 # Example version
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true

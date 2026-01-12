@@ -1,41 +1,23 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# General
 .DS_Store
-*.pem
+.idea/
+.vscode/
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# Rust (tactanotes_core)
+/tactanotes_core/target/
+/tactanotes_core/**/Cargo.lock
 
-# env files (can opt-in for committing if needed)
-.env*
+# Flutter (tactanotes_ui)
+/tactanotes_ui/.dart_tool/
+/tactanotes_ui/.flutter-plugins
+/tactanotes_ui/.flutter-plugins-dependencies
+/tactanotes_ui/build/
+/tactanotes_ui/ios/Flutter/Generated.xcconfig
+/tactanotes_ui/ios/Flutter/flutter_export_environment.sh
+/tactanotes_ui/android/.gradle
+/tactanotes_ui/android/local.properties
+/tactanotes_ui/pubspec.lock
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Ephemeral / Tmp
+tmp/
+*.log
