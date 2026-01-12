@@ -41,6 +41,13 @@ impl Database {
             [],
         )?;
 
+        // Feature F16: "Zen Search" (Full Text Search)
+        // We use a virtual table to index titles and plain-text summaries (decrypted cache)
+        conn.execute(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(title, content, content_rowid='notes_id')",
+            [],
+        )?;
+
         Ok(Self { conn, encryptor })
     }
 
@@ -57,4 +64,28 @@ impl Database {
         )?;
         Ok(self.conn.last_insert_rowid())
     }
+
+    // F09: Cloud Delta Sync (Get Changes)
+    pub fn get_modified_notes(&self, since: i64) -> Result<Vec<(i64, String, Vec<u8>, i64)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, title, content, updated_at FROM notes WHERE updated_at > ?1"
+        )?;
+        
+        let rows = stmt.query_map([since], |row| {
+             Ok((
+                row.get(0)?, // id
+                row.get(1)?, // title
+                row.get(2)?, // content (blob/encrypted)
+                row.get(3)?, // updated_at
+            ))           
+        })?;
+
+        let mut results = Vec::new();
+        for row in rows {
+            results.push(row?);
+        }
+        Ok(results)
+    }
+
+    pub fn search_notes(&self, query: &str) -> Result<Vec<(String, String)>> {
 }

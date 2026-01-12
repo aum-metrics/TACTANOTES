@@ -1,55 +1,47 @@
-use std::collections::HashMap;
+// Feature F09: Cloud Delta Sync
+use serde::{Deserialize, Serialize};
 
-// Feature F7: Delta-Cloud Sync
-// Simulates binary diffing
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SyncBlob {
+    pub version: u32,
+    pub timestamp: i64,
+    pub changes: Vec<NoteDelta>,
+}
 
-#[derive(Debug, Clone)]
-pub struct NoteState {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NoteDelta {
     pub id: i64,
-    pub content_hash: String,
+    pub title: String,
+    pub encrypted_content: Vec<u8>,
     pub updated_at: i64,
 }
 
-pub struct SyncEngine {
-    // Determine what needs to be uploaded/downloaded
-}
+pub struct SyncEngine;
 
 impl SyncEngine {
     pub fn new() -> Self {
         Self {}
     }
 
-    pub fn calculate_changes(
-        local_notes: &[NoteState],
-        remote_notes: &[NoteState]
-    ) -> (Vec<i64>, Vec<i64>) {
-        // Returns (ToUpload, ToDownload)
-        let mut to_upload = Vec::new();
-        let mut to_download = Vec::new();
-        
-        let remote_map: HashMap<i64, &NoteState> = remote_notes.iter().map(|n| (n.id, n)).collect();
-        
-        for local in local_notes {
-            if let Some(remote) = remote_map.get(&local.id) {
-                if local.updated_at > remote.updated_at {
-                    to_upload.push(local.id);
-                } else if remote.updated_at > local.updated_at {
-                    to_download.push(local.id); // Conflict resolution: Server wins (simplified)
-                }
-            } else {
-                // New local note
-                to_upload.push(local.id);
+    // "Packing" Logic (Encryption + Serialization)
+    // Takes raw modified rows from DB and creates a transport-ready BLOB
+    pub fn pack_delta(notes: Vec<(i64, String, Vec<u8>, i64)>) -> Result<Vec<u8>, serde_json::Error> {
+        let deltas: Vec<NoteDelta> = notes.into_iter().map(|(id, title, encrypted_content, updated_at)| {
+            NoteDelta {
+                id,
+                title,
+                encrypted_content,
+                updated_at
             }
-        }
-        
-        // Check for new remote notes
-        let local_ids: Vec<i64> = local_notes.iter().map(|n| n.id).collect();
-        for remote in remote_notes {
-            if !local_ids.contains(&remote.id) {
-                to_download.push(remote.id);
-            }
-        }
+        }).collect();
 
-        (to_upload, to_download)
+        let blob = SyncBlob {
+            version: 1,
+            timestamp: chrono::Utc::now().timestamp(),
+            changes: deltas,
+        };
+
+        // Serialize to generic binary (JSON for MVP, Protobuf for Prod)
+        serde_json::to_vec(&blob)
     }
 }
