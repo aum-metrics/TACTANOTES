@@ -1,9 +1,9 @@
-pub struct VoiceActivityDetector {
+pub struct VadEngine {
     // tract_onnx::SimplePlan lookup would go here
     model_path: String
 }
 
-impl VoiceActivityDetector {
+impl VadEngine {
     pub fn new(model_path: &str) -> Self {
         Self {
             model_path: model_path.to_string()

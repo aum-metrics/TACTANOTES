@@ -9,10 +9,10 @@ lazy_static::lazy_static! {
     static ref ENGINE: Mutex<Engine> = Mutex::new(Engine::new());
 }
 
-pub fn init_app() -> String {
-    // Force init
-    let _ = ENGINE.lock().unwrap();
-    "Tactanotes Core v5.3 Initialized".to_string()
+#[no_mangle]
+pub extern "C" fn init_app() {
+    let _guard = ENGINE.lock().unwrap();
+    println!("App Initialized");
 }
 
 pub fn start_recording(subject: String) -> anyhow::Result<()> {

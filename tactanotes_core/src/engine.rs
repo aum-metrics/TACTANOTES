@@ -1,10 +1,17 @@
 use crate::audio::capture::AudioRecorder;
 use crate::audio::buffer::CircularAudioBuffer;
+use crate::audio::vad::VadEngine;
+use crate::ai::asr::WhisperModel;
+use crate::ai::llm::LlmModel;
+use crate::storage::db::Database;
+use crate::engine::endurance::{EnduranceController, EnduranceMode};
 use crate::ai::manager::ModelManager;
 use crate::ai::text::RollingBuffer;
 use crate::ai::lang::LanguageDetector;
 use std::sync::{Arc, Mutex};
 use crate::ai::rag::VectorStore;
+
+pub mod endurance;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum EngineState {

@@ -11,6 +11,7 @@ impl TacticResampler {
             f_cutoff: 0.95,
             interpolation: SincInterpolationType::Linear, // Balance speed/quality
             window: WindowFunction::BlackmanHarris2,
+            oversampling_factor: 128,
         };
         // ratio = output / input (e.g., 16000 / 48000 = 0.333)
         // input chunk size 1024, 1 channel

@@ -38,4 +38,8 @@ impl CircularAudioBuffer {
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
+
+    pub fn clear(&mut self) {
+        self.buffer.clear();
+    }
 }

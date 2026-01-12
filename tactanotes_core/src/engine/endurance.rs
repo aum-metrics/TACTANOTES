@@ -14,6 +14,9 @@ pub struct EnduranceController {
     
     // Mocks for testing (preserved)
     simulated_mode: bool,
+    
+    // State
+    pub current_mode: EnduranceMode,
 }
 
 impl EnduranceController {

@@ -87,5 +87,8 @@ impl Database {
         Ok(results)
     }
 
-    pub fn search_notes(&self, query: &str) -> Result<Vec<(String, String)>> {
+    pub fn search_notes(&self, _query: &str) -> Result<Vec<(String, String)>> {
+        // F13: Placeholder for FTS5 search
+        Ok(Vec::new())
+    }
 }

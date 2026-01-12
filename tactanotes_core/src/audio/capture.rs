@@ -1,8 +1,12 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 
+// Wrapper to allow Stream in Mutex (Unsafe but needed for global Engine)
+struct SendStream(cpal::Stream);
+unsafe impl Send for SendStream {}
+
 pub struct AudioRecorder {
-    stream: Option<cpal::Stream>,
+    stream: Option<SendStream>,
     is_recording: bool,
     buffer: Arc<Mutex<Vec<f32>>>,
 }
@@ -32,21 +36,10 @@ impl AudioRecorder {
         let target_rate = 16000;
         
         let mut resampler_opt = if sample_rate != target_rate {
-            use rubato::{Resampler, SincFixedIn, SincInterpolationType, SincInterpolationParameters, WindowFunction};
-            let params = SincInterpolationParameters {
-                sinc_len: 256,
-                f_cutoff: 0.95,
-                interpolation: SincInterpolationType::Linear,
-                window: WindowFunction::BlackmanHarris2,
-            };
-            // 1024 input samples -> appropriate output samples
-            Some(SincFixedIn::<f32>::new(
-                target_rate as f64 / sample_rate as f64,
-                2.0, // Max resample ratio
-                params,
-                1024, // Input chunk size
-                1,    // Channels
-            ).map_err(|e| anyhow::anyhow!("Resampler init failed: {}", e))?)
+            Some(crate::audio::resampler::TacticResampler::new(
+                sample_rate as f64,
+                target_rate as f64
+            ))
         } else {
             None
         };
@@ -59,26 +52,20 @@ impl AudioRecorder {
             &config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 if let Some(resampler) = &mut resampler_opt {
-                     use rubato::Resampler;
                      // 1. Accumulate input
                      input_accumulator.extend_from_slice(data);
                      
-                     // 2. Process in fixed chunks (Rubato requirement)
+                     // 2. Process via TacticResampler
                      let chunk_size = resampler.input_frames_next();
                      while input_accumulator.len() >= chunk_size {
                          let chunk: Vec<f32> = input_accumulator.drain(0..chunk_size).collect();
-                         let waves_in = vec![chunk];
                          
-                         // 3. Sinc Interpolate
-                         if let Ok(waves_out) = resampler.process(&waves_in, None) {
-                             if let Some(channel_data) = waves_out.get(0) {
-                                 if let Ok(mut buffer) = buffer_clone.lock() {
-                                     buffer.extend_from_slice(channel_data);
-                                 }
-                             }
+                         let channel_data = resampler.process(chunk);
+                         if !channel_data.is_empty() {
+                              if let Ok(mut buffer) = buffer_clone.lock() {
+                                  buffer.extend_from_slice(&channel_data);
+                              }
                          }
-                         // Re-check next chunk size
-                         // chunk_size = resampler.input_frames_next(); // For fixed_in it's constant usually
                      }
                 } else {
                     // Native 16k pass-through
@@ -92,16 +79,16 @@ impl AudioRecorder {
         )?;
 
         stream.play()?;
-        self.stream = Some(stream);
+        self.stream = Some(SendStream(stream));
         self.is_recording = true;
         
         Ok(())
     }
 
     pub fn stop(&mut self) {
-        if let Some(stream) = self.stream.take() {
+        if let Some(wrapper) = self.stream.take() {
             // Drop stream stops it
-            drop(stream);
+            drop(wrapper.0);
         }
         self.is_recording = false;
     }

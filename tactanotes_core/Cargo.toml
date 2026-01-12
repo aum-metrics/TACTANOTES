@@ -24,11 +24,12 @@ mimalloc = { version = "0.1", default-features = false }
 
 # Utils
 anyhow = "1.0"
-thiserroring = "0.16"
+thiserror = "1.0"
 # v5.3 Sync Dependencies
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
+time = "0.3.36" # Fix for E0282
 flutter_rust_bridge = "2.0" # Match codegen version
 lazy_static = "1.4"
 
