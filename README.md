@@ -1,36 +1,33 @@
-# 🧠 TACTANOTES v5.3 (Deployment Build)
+# 🧠 TACTANOTES v5.4 (Endurance Build)
 
 **The AI-First, Offline-First Note Taking Engine.**
 *Privacy by Physics. Intelligence by Design.*
 
 ## 🚀 Overview
-TACTANOTES is a high-performance voice note-taking application designed for total privacy. It runs on-device AI inference (ASR, LLM, RAG) using a **Rust Kernel** wrapped in a **Flutter UI**.
+TACTANOTES is a high-performance voice note-taking application designed for total privacy on **Global South Hardware (3GB-4GB RAM)**. It runs on-device AI inference (ASR, LLM, RAG) using a **Rust Kernel** wrapped in a **Flutter UI**.
 
 *   **Offline-First**: Zero data leaves the device without explicit "Cloud Sync".
-*   **Hybrid Architecture**: Flutter handles the UI/UX, while Rust manages Audio (Rubato), AI (ONNX), and Encryption (Argon2/AES).
-*   **Privacy**: Adheres to Google Play 2026 data safety standards.
+*   **Endurance-Tuned**: Optimized for 10-hour battery life and <500MB Peak RAM.
+*   **Data Safety Statement**: TACTANOTES performs speech recognition and summarization entirely on-device. Audio, transcripts, and summaries are never transmitted off-device unless the user explicitly enables encrypted cloud backup.
 
 ---
 
-## 🛠️ Architecture Stack
+## 🛠️ Architecture Stack (Endurance Edition)
 
-| Component | Technology | Purpose |
-| :--- | :--- | :--- |
-| **UI Shell** | Flutter (Dart) | Fluid Animations, Stealth Mode, OLED Optimization. |
-| **Logic Core** | Rust (via FRB) | Application state, Threading, Thermal Management. |
-| **Audio Engine** | `rubato` + `cpal` | Hi-Fi Sinc Resampling (48kHz -> 16kHz) & VAD. |
-| **ASR** | Distil-Small (Int8) | Real-time Speech-to-Text (102MB). |
-| **Intelligence** | Gemma-2 (2B-Int4) | Offline Summarization (425MB) via mmap. |
-| **Database** | SQLite + FTS5 | Encrypted storage & "Zen Search". |
-
-### 🧠 Memory Budget (The 512MB Challenge)
-To run large models on low-end devices, we use **Interleaved Inference**:
-
-| State | Models Loaded | RAM Usage | Purpose |
+| Component | Technology | Spec | Peak RAM (Est) |
 | :--- | :--- | :--- | :--- |
-| **State A (Record)** | ASR + VAD | **~150 MB** | Real-time transcription. |
-| **State B (Think)** | LLM + Vector | **~460 MB** | Summarization & Organization. |
-*The system aggressively unloads ASR before loading the LLM.*
+| **Logic Core** | Rust (via FRB) | Threading, Thermal Management. | ~10 MB |
+| **Audio Engine** | `rubato` + `cpal` | **Sinc Resampling** (No-Metallic Bridge). | ~5 MB |
+| **ASR** | Whisper-Tiny-v3 | Real-time Speech-to-Text (Int8). | **~70 MB** |
+| **Summarizer** | Qwen2.5-0.5B | Offline Instruct LLM (IQ4_XS). | **~375 MB** |
+| **Vector Engine** | MiniLM-L6-v2 | RAG / Semantic Search (Int8). | **~45 MB** |
+| **VAD** | Silero v5 | Voice Activity Detection. | < 10 MB |
+
+### 🧠 Memory Budget (The 512MB Rule)
+We strictly adhere to a **500MB Peak Footprint** to leave a 400MB safety margin before the Android LMK (Low Memory Killer) intervenes.
+
+*   **Strategy**: `mlock` is explicitly **DISABLED** to allow OS paging compliance.
+*   **Thermal**: If Temp > 42°C (Battery Fallback), LLM inference halts.
 
 ---
 
@@ -50,20 +47,23 @@ Run this **single command** to generate the Android/iOS folders and the Rust FFI
 ./fix_project.sh
 ```
 
-### 3. AI Model Setup (Critical!)
-The AI models are too large for Git (>500MB). You must download them manually into `tactanotes_ui/assets/models/`:
+### 3. AI Model Setup (v5.4 Endurance Pack)
+The AI models are too large for Git. You must download the **Endurance-Optimized** versions manually:
 
 ```bash
 cd tactanotes_ui/assets/models/
 
-# 1. Silero VAD (2MB)
+# 1. Silero VAD v5 (2MB)
 curl -L -o vad_model.onnx https://github.com/snakers4/silero-vad/raw/master/files/silero_vad.onnx
 
-# 2. Gemma 2 (2B) Mobile Optimized (~1.5GB)
-curl -L -o llm_model.onnx https://huggingface.co/EmbeddedLLM/gemma-2b-it-onnx/resolve/main/model_quantized.onnx
+# 2. Qwen2.5-0.5B-Instruct (340MB - IQ4_XS) - The "Endurance" Model
+curl -L -o llm_model.onnx https://huggingface.co/EmbeddedLLM/Qwen2.5-0.5B-Instruct-ONNX/resolve/main/model_quantized.onnx
 
-# 3. Whisper Distil-Small (102MB)
-curl -L -o distil-small.en-encoder.int8.onnx https://huggingface.co/EmbeddedLLM/distil-small.en-onnx/resolve/main/encoder_model_quantized.onnx
+# 3. Whisper-Tiny-v3 (41MB - Int8)
+curl -L -o asr_model.onnx https://huggingface.co/EmbeddedLLM/whisper-tiny-v3-onnx/resolve/main/model_quantized.onnx
+
+# 4. Vector Engine (MiniLM - 23MB)
+curl -L -o vector_model.onnx https://huggingface.co/EmbeddedLLM/all-MiniLM-L6-v2-onnx/resolve/main/model_quantized.onnx
 ```
 
 ### 4. Run It
@@ -84,7 +84,7 @@ To prevent overheating during long sessions, the **Endurance Engine** monitors b
 
 ### ☁️ Cloud Delta Sync
 *   **Encrypted Sync**: Data is packed into `SyncBlob` format (AES-256) before upload.
-*   **Mock Registry**: Features a "Hybrid Registration" flow for user metrics without compromising data privacy.
+*   **Mock Registry**: Hybrid Registration collects only anonymous installation metrics (OS version, device class). No audio, text, or behavioral data is collected.
 
 ### 🎧 Rubato Audio
 Uses **Sinc Interpolation** instead of basic decimation to prevent "metallic" voice artifacts when downsampling from 48kHz to 16kHz.

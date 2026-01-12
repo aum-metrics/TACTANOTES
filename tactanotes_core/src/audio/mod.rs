@@ -1,3 +1,5 @@
 pub mod capture;
-pub mod vad;
 pub mod buffer;
+pub mod vad;
+pub mod resampler;
+buffer;

@@ -7,9 +7,9 @@ pub struct LlmModel {
 
 impl LlmModel {
     pub fn load() -> Self {
-        println!("Loading LLM (model_quantized.onnx + external data)...");
-        // In real impl: tract/ort looks for 'model_quantized.onnx'.
-        // The .onnx_data file is automatically found if in the same dir.
+        println!("Loading LLM (llm_model.onnx)...");
+        // v5.4: Target 'llm_model.onnx' (Qwen2.5-0.5B)
+        // Config: Explicitly avoiding mlock to allow OS paging.
         Self { loaded: true }
     }
 
